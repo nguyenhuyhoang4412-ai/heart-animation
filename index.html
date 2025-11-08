@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anh Yêu Em</title>
+    <!-- Tải Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Thiết lập font Inter -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background-color: #f7f9fc; /* Màu nền nhẹ */
+        }
+        /* Đảm bảo font monospace cho output trái tim */
+        #heartOutput {
+            font-family: monospace;
+            white-space: pre; /* Quan trọng để giữ khoảng trắng và ngắt dòng */
+            line-height: 0.95; /* Điều chỉnh dòng để hình trái tim nén hơn và đẹp hơn */
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-4">
+
+    <div class="w-full max-w-4xl bg-white shadow-2xl rounded-xl p-6 md:p-10 border border-gray-100">
+        <h1 class="text-3xl font-bold text-center text-red-600 mb-6">Anh Yêu Em</h1>
+        <p class="text-center text-gray-500 mb-8">Nhập tên đi bé iu.</p>
+
+        <div class="flex flex-col md:flex-row gap-4 mb-8">
+            <input 
+                type="text" 
+                id="nameInput" 
+                placeholder="Nhập tên của bạn (ví dụ: Anh Quyền)" 
+                maxlength="20"
+                class="flex-grow p-3 border-2 border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-300 shadow-sm"
+            />
+            <button 
+                id="startButton" 
+                class="px-6 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+                Bắt Đầu 
+            </button>
+        </div>
+        
+        <!-- Khu vực hiển thị Trái Tim -->
+        <div class="flex justify-center items-center bg-gray-900 rounded-xl p-4 shadow-inner overflow-x-auto">
+             <!-- Output sẽ dùng thẻ <pre> để giữ định dạng monospace và khoảng trắng -->
+            <pre id="heartOutput" class="text-center transition-colors duration-100"></pre>
+        </div>
+        
+    </div>
+
+    <script>
+        // Lấy các phần tử DOM
+        const nameInput = document.getElementById('nameInput');
+        const startButton = document.getElementById('startButton');
+        const heartOutput = document.getElementById('heartOutput');
+
+        // Danh sách các lớp màu Tailwind cho hiệu ứng luân phiên
+        // Tương đương với: BLACK, GREEN, RED, YELLOW, MAGENTA, BLUE
+        const colorClasses = [
+            'text-gray-200',  // Đen (thay bằng xám sáng để dễ nhìn trên nền đen)
+            'text-green-400', 
+            'text-red-500', 
+            'text-yellow-400', 
+            'text-purple-400', 
+            'text-blue-400'
+        ];
+        
+        let colorIndex = 0;
+        let animationInterval;
+        let isRunning = false;
+        
+        // Cấu hình kích thước lưới
+        const Y_START = 15;
+        const Y_END = -15;
+        const X_START = -30;
+        const X_END = 30;
+        
+        // Hàm chính để tạo và hiển thị trái tim
+        function drawHeart(text) {
+            const nameText = text.length > 0 ? text : "❤️";
+            let output = "";
+
+            // Lặp theo trục Y (từ trên xuống)
+            for (let y = Y_START; y >= Y_END; y--) {
+                let line = "";
+                // Lặp theo trục X (từ trái sang phải)
+                for (let x = X_START; x <= X_END; x++) {
+                    
+                    // Phương trình hình trái tim (chuyển từ Python sang Math.pow/Math.sqrt trong JS)
+                    // formula = ((x*0.05)**2 + (y*0.1)**2 - 1)**3 - (x*0.05)**2 * (y*0.1)**3
+                    const xNorm = x * 0.05;
+                    const yNorm = y * 0.1;
+                    
+                    const term1 = Math.pow(xNorm, 2) + Math.pow(yNorm, 2) - 1;
+                    const term2 = Math.pow(term1, 3);
+                    const term3 = Math.pow(xNorm, 2) * Math.pow(yNorm, 3);
+                    
+                    const result = term2 - term3;
+                    
+                    if (result <= 0) {
+                        // Ký tự tên được lặp lại, tương đương: text[(x - y) % len(text)]
+                        const charIndex = (x - y) % nameText.length;
+                        // Đảm bảo chỉ số luôn dương
+                        line += nameText.charAt((charIndex + nameText.length) % nameText.length);
+                    } else {
+                        line += " ";
+                    }
+                }
+                output += line + "\n";
+            }
+
+            // Gán lớp màu và nội dung
+            heartOutput.className = 'text-center ' + colorClasses[colorIndex];
+            heartOutput.textContent = output;
+
+            // Chuyển sang màu tiếp theo
+            colorIndex = (colorIndex + 1) % colorClasses.length;
+        }
+
+        // Hàm điều khiển bắt đầu/dừng animation
+        function toggleAnimation() {
+            if (isRunning) {
+                // Dừng animation
+                clearInterval(animationInterval);
+                startButton.textContent = "Nhấn dô đây nè tình iu";
+                startButton.classList.remove('bg-gray-500', 'hover:bg-gray-600');
+                startButton.classList.add('bg-red-600', 'hover:bg-red-700');
+            } else {
+                // Bắt đầu animation
+                let name = nameInput.value.trim();
+                
+                if (name === "") {
+                    // Cung cấp một giá trị mặc định nếu người dùng không nhập gì
+                    name = "GEMINI"; 
+                    nameInput.value = name;
+                }
+
+                // Dọn dẹp trước khi chạy
+                if (animationInterval) clearInterval(animationInterval);
+                colorIndex = 0; // Đặt lại màu
+
+                // Chạy lần đầu tiên
+                drawHeart(name);
+                
+                // Lặp lại animation sau mỗi 100ms (tương đương time.sleep(0.1) trong Python)
+                animationInterval = setInterval(() => {
+                    // Lấy lại giá trị tên mới nhất mỗi lần lặp
+                    drawHeart(nameInput.value.trim() || "GEMINI");
+                }, 100);
+
+                startButton.textContent = "Dừng!!! lại stop";
+                startButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+                startButton.classList.add('bg-gray-500', 'hover:bg-gray-600');
+            }
+            isRunning = !isRunning;
+        }
+
+        // Gắn sự kiện click vào nút
+        startButton.addEventListener('click', toggleAnimation);
+        
+        // Gắn sự kiện Enter vào ô input để tiện bắt đầu
+        nameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !isRunning) {
+                toggleAnimation();
+            }
+        });
+
+        // Tải trang lần đầu, chạy demo mặc định
+        window.onload = () => {
+             nameInput.value = "TINH YEU";
+             toggleAnimation();
+        };
+
+    </script>
+</body>
+</html>
